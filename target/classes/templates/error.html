@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<th:block th:replace="~{fragments/head :: headFragment}"></th:block>
+<body class="d-flex align-items-center py-4 bg-body-tertiary">
+    <div class="container">
+        <div class="row">
+            <div class="col col-12 text-center">
+                <h2>세션이 종료되었거나, 등록되지 않은 페이지 입니다.</h2>
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col col-12 text-center">
+                <a class="btn btn-danger" th:href="@{/logout}">메인페이지로 이동</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

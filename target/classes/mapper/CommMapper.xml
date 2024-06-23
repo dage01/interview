@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dage.interview.dao.CommDAO">
+    <select id="commProjCode" resultType="com.dage.interview.dto.ProjDTO">
+        SELECT
+        nvl(b.user_no, #{user_no}) user_no,
+        a.head,
+        a.dept,
+        a.proj_code,
+        a.proj_name,
+        CASE
+        WHEN b.dept_code IS NOT NULL THEN 1
+        ELSE 0
+        END AS dept_status
+        FROM
+        (SELECT
+        sf_proj_name(sati_head_code) AS head,
+        sf_proj_name(NVL(sati_dept_code, sati_head_code)) AS dept,
+        proj_code,
+        proj_name
+        FROM
+        tcc_proj_code
+        WHERE
+        use_tag = 'T'
+        AND sati_head_code IN (1000, 2510, 2520, 2530, 2540, 3600, 7000)
+        AND NVL(sati_dept_code, sati_head_code) IN (1000, 1040, 2032, 2510, 2022, 2520, 2530, 4225, 4226, 2013, 2014, 2210, 2540, 3600, 7000)
+        AND op_cls = 10
+        AND NOT (sati_head_code = NVL(sati_dept_code, sati_head_code)
+        AND sati_head_code = proj_code)
+        ORDER BY
+        sati_head_code,
+        sf_proj_name(NVL(sati_dept_code, sati_head_code)),
+        proj_code
+        ) a
+        LEFT JOIN
+        thr_intrv_access b
+        ON
+        a.proj_code = b.dept_code AND b.user_no = #{user_no}
+    </select>
+
+    <select id="employeeAuthList" resultType="com.dage.interview.dto.CommDTO">
+        SELECT DISTINCT
+            a.emp_no AS id,
+            b.position_name || ' ' || a.name || ' (' || sf_proj_name(a.sub_dept_code) || ')' AS text,
+            d.proj_code,
+            a.sub_dept_code,
+            b.seq
+        FROM thr_pm_base a
+        JOIN thr_position_code b ON a.position_code = b.position_code
+        JOIN tcc_proj_code d ON a.sub_dept_code = d.proj_code
+        JOIN (
+            SELECT emp_no, proj_code
+            FROM (
+                SELECT e.emp_no, e.sub_dept_code AS proj_code
+                FROM thr_pm_base e
+                WHERE e.emp_no = #{req_emp_no}
+                UNION ALL
+                SELECT a.emp_no, b.proj_code
+                FROM (
+                    SELECT z.*
+                    FROM (
+                        SELECT
+                            ROW_NUMBER() OVER (PARTITION BY emp_no ORDER BY seq DESC) AS rnum,
+                            x.*
+                        FROM thr_annou_detail_mng x
+                        WHERE NVL(x.CONFIRM_TG, 'F') = 'T'
+                    ) z
+                    WHERE rnum = 1
+                ) a
+                JOIN thr_annou_add_dept b ON a.docu_no = b.docu_no AND a.seq = b.seq
+                WHERE a.emp_no = #{req_emp_no}
+            )
+        ) c ON a.sub_dept_code = c.proj_code
+            OR a.dept_code = c.proj_code
+            OR d.sati_head_code = c.proj_code
+            OR d.sati_dept_code = c.proj_code
+        WHERE seq > (
+            SELECT x1.seq
+            FROM thr_pm_base x
+            JOIN thr_position_code x1 ON x.position_code = x1.position_code
+            WHERE x.emp_no = #{req_emp_no}
+        )
+        AND a.retired_dt IS NULL
+        ORDER BY d.proj_code, a.sub_dept_code, b.seq
+    </select>
+
+    <select id="accessList" resultType="com.dage.interview.dto.CommDTO">
+        select
+            b.user_no as id,
+            '(' || sf_proj_name(a.sub_dept_code) || ') ' || sf_position_name(a.position_code) || ' ' || a.name as text
+        from thr_pm_base a,
+            tcc_employe b
+        where
+            a.emp_no = b.empno
+            and a.retired_dt is null
+            and a.ent_comp_dt is not null
+            and a.position_code is not null
+<!--            and a.duty_code in (03, 04, 09 ,14 ,37)-->
+        order by a.position_code, a.name
+    </select>
+
+</mapper>

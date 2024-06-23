@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 공통 헤드-->
+<th:block th:replace="~{fragments/head :: headFragment}"></th:block>
+<link rel="stylesheet" href="css/common.css" th:href="@{/css/common.css}">
+
+<style>
+    .styled-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+    .styled-table th,
+    .styled-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .styled-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+
+    .question {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    label {
+        font-size: 18px;
+    }
+
+    #btn_temp_save, #btn_submit{
+        width: 150px;
+        height: 50px;
+    }
+
+</style>
+</head>
+<th:block th:replace="~{fragments/nav :: navFragment}"></th:block>
+<body>
+    <div class="container container-top">
+        <form name="interviewForm" id="interviewForm" action="/api/saveForm" target="/list" th:object="${interviewDTO}">
+            <input type="hidden" th:field="*{seq}" />
+            <div class="row mt-5">
+                <div class="col-sm-12">
+                    <h3>직원면담일지 작성</h3>
+                    <hr>
+                    <div class="row row-cols-2">
+                        <div class="col"></div>
+                        <div class="col-sm text-end mx-1">
+                            <span style="font-weight: bold;"
+                                th:text="|면담자 : ${session.loginDto.name} ${session.loginDto.position} |"></span>
+                        </div>
+                        <div class="col"></div>
+                        <div class="col-sm text-end mx-1">
+                            <span style="font-weight: bold;"
+                                th:text="|면담일 : ${#dates.format(interviewDTO.reqDt,'yyyy-MM-dd')}|"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <h4>피 면담자</h4>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col text-center">
+                            <table class="styled-table" id="employeeTable">
+                                <thead>
+                                    <tr>
+                                        <th>사번</th>
+                                        <th>소속부서</th>
+                                        <th>근무현장</th>
+                                        <th>이름</th>
+                                        <th>직급</th>
+                                        <!-- <th>입사일</th> -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td th:text="${interviewDTO.ansDeptNo}"></td>
+                                        <td th:text="${interviewDTO.ansAddDept}"></td>
+                                        <td th:text="${interviewDTO.ansSubDept}"></td>
+                                        <td th:text="${interviewDTO.ansName}"></td>
+                                        <td th:text="${interviewDTO.ansPos}"></td>
+                                        <!-- <td th:text="${interviewDTO.ansEntDt}"></td> -->
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <hr>
+                    <!-- <input type="hidden" value="1" name="q_a">
+                    <input type="hidden" value="2" name="q_b">
+                    <input type="hidden" value="3" name="q_c"> -->
+                    <div class="row my-3">
+                        <div class="col">
+                            <span class="question">1. 직무만족도</span>
+                            <div class="row my-3">
+                                <div class="col ms-5">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="a" id="a_1" value="1"
+                                            th:field="*{q1}" required>
+                                        <label class="form-check-label" for="option1">
+                                            매우 좋음
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="a" id="a_2" value="2"
+                                            th:field="*{q1}" required>
+                                        <label class="form-check-label" for="option2">
+                                            좋음
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="a" id="a_3" value="3"
+                                            th:field="*{q1}" required>
+                                        <label class="form-check-label" for="option3">
+                                            보통
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="a" id="a_4" value="4"
+                                            th:field="*{q1}" required>
+                                        <label class="form-check-label" for="option4">
+                                            나쁨
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="a" id="a_5" value="5"
+                                            th:field="*{q1}" required>
+                                        <label class="form-check-label" for="option5">
+                                            매우 나쁨
+                                        </label>
+                                    </div>
+                                    <input type="text" class="form-control my-3" name="a_dtl" id="a_dtl"
+                                        th:field="*{q1Dtl}" placeholder="사유">
+                                </div>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row my-3">
+                        <div class="col">
+                            <span class="question">2. 개인 고충 (다중선택 가능)</span>
+                            <div class="row my-3">
+                                <div class="col ms-5">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" th:name="b_1" value="1" id="b_1"
+                                            th:field="*{q21}">
+                                        <label class="form-check-label" for="b_1">업무량</label>
+                                        <input type="text" class="form-control my-3 reason" th:name="b_1_dtl"
+                                            id="b_1_dtl" th:field="*{q21Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_2" value="2" id="b_2"
+                                            th:field="*{q22}">
+                                        <label class="form-check-label" for="b_2">스트레스</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_2_dtl" id="b_2_dtl"
+                                            th:field="*{q22Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_3" value="3" id="b_3"
+                                            th:field="*{q23}">
+                                        <label class="form-check-label" for="b_3">업무시간</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_3_dtl" id="b_3_dtl"
+                                            th:field="*{q23Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_4" value="4" id="b_4"
+                                            th:field="*{q24}">
+                                        <label class="form-check-label" for="b_4">업무와 삶의 균형</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_4_dtl" id="b_4_dtl"
+                                            th:field="*{q24Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_5" value="5" id="b_5"
+                                            th:field="*{q25}">
+                                        <label class="form-check-label" for="b_5">동료와 상사와의 관계</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_5_dtl" id="b_5_dtl"
+                                            th:field="*{q25Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_6" value="6" id="b_6"
+                                            th:field="*{q26}">
+                                        <label class="form-check-label" for="b_6">업무환경</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_6_dtl" id="b_6_dtl"
+                                            th:field="*{q26Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_7" value="7" id="b_7"
+                                            th:field="*{q27}">
+                                        <label class="form-check-label" for="b_7">직장 내 괴롭힘</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_7_dtl" id="b_7_dtl"
+                                            th:field="*{q27Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_8" value="8" id="b_8"
+                                            th:field="*{q28}">
+                                        <label class="form-check-label" for="b_8">승진</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_8_dtl" id="b_8_dtl"
+                                            th:field="*{q28Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_9" value="9" id="b_9"
+                                            th:field="*{q29}">
+                                        <label class="form-check-label" for="b_9">급여</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_9_dtl" id="b_9_dtl"
+                                            th:field="*{q29Dtl}" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="b_10" value="10"
+                                            th:field="*{q210}" id="b_10">
+                                        <label class="form-check-label" for="b_10">기타</label>
+                                        <input type="text" class="form-control my-3 reason" name="b_10_dtl"
+                                            th:field="*{q210Dtl}" id="b_10_dtl" placeholder="(필수) 사유" disabled>
+                                    </div>
+                                    <!-- <div th:if="${InterviewDTO.q210 == true}">
+                                        <input type="text" class="form-control my-3 reason" name="b_8_dtl"
+                                            id="b_8_dtl" th:field="*{q210Dtl}" readonly>
+                                    </div> -->
+                                </div>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row my-3">
+                        <div class="col">
+                            <label for="exampleFormControlTextarea1" class="form-label question">3. 목표 및 성장</label>
+                            <div class="row my-3">
+                                <div class="col mx-5">
+                                    <textarea class="form-control" id="c_dtl" name="c_dtl" rows="10" th:field="*{q3Dtl}"
+                                        style="resize: none;" required></textarea>
+                                </div>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row my-3">
+                        <div class="col">
+                            <label for="exampleFormControlTextarea1" class="form-label question">4. 면담자 소견</label>
+                            <div class="row my-3">
+                                <div class="col mx-5">
+                                    <textarea class="form-control" id="d_dtl" name="d_dtl" rows="10" th:field="*{q4Dtl}"
+                                        style="resize: none;" required></textarea>
+                                </div>
+                            </div>
+                            <hr>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-5">
+                <div class="col text-center">
+                    <button type="button" class="btn btn-secondary mx-3" id="btn_temp_save">임시저장</button>
+                    <button type="submit" class="btn btn-success mx-3" id="btn_submit">완료</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <th:block th:replace="~{fragments/script :: scriptFragment}"></th:block>
+    <script>
+        /* 1번 문항 */
+
+        $('input[type=radio]').on("click", function (e) {
+            if ($(this).val() == 4 || $(this).val() == 5) {
+                $('#a_dtl').prop('required', true).focus();
+            } else {
+                $('#a_dtl').prop('required', false);
+            }
+        });
+
+        if ($('input[type=radio]:checked').val() == 4 || $('input[type=radio]:checked').val() == 5) {
+            $('#a_dtl').prop('required', true)
+        } 
+
+
+        /* 2번 문항 */
+
+        for (var i = 1; i <= 10; i++) {
+            if ($('#b_' + i).is(":checked")) {
+                $('#b_' + i + '_dtl').prop('disabled', false).prop('required', true);
+            } else {
+                $('#b_' + i + '_dtl').hide();
+            }
+        }
+
+        $("input[type=checkbox]").change(function () {
+            var reason = $(this).attr('id') + "_dtl";
+            if ($(this).is(":checked")) {
+                $('#' + reason).show().prop('disabled', false).prop('required', true).focus();
+            } else {
+                $('#' + reason).hide().prop('disabled', true).prop('required', false);
+            }
+        });
+
+        $("#interviewForm").submit(function (event) {
+            event.preventDefault(); // 폼 기본 제출 방지
+
+            var isChecked = $("input[type=checkbox]:checked").length > 0;
+            if (!isChecked) {
+                alert("2번 문항의 답변이 없습니다.");
+                return false;
+            }
+
+            if ($('input[name="a"]:checked').val() == 4 || $('input[name="a"]:checked').val() == 5) {
+                $('#a_dtl').prop('required', true)
+            }
+
+            // 폼 데이터를 객체로 수집
+            var formData = $("#interviewForm").serializeArray();
+            formData.push({ name: "save_tag", value: "T" });
+
+            $.ajax({
+                type: "POST",
+                url: "/api/saveForm",
+                data: $.param(formData),
+                success: function (response) {
+                    alert('작성완료되었습니다.');
+                    window.location.href = '/interview-list';
+                },
+                error: function (error) {
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                }
+            });
+        });
+
+        /* 3번 문항 */
+        var cDtl = $("#c_dtl").val();
+
+        if (cDtl == null || cDtl == "") {
+            var text = "";
+            text += "업무적으로나 개인적으로 성장하고자 하는 이유와 목적이 무엇인가요? 어떤 계획을 가지고 계신가요?\n";
+            text += ">";
+            text += "\n\n\n";
+            text += "그 계획의 달성을 위해 제가 지원해줄 수 있는 부분이 무엇인가요? 저(혹은 상사, 회사)에게 어떤 것을 바라시나요?";
+            text += "\n";
+            text += ">";
+            text += "\n";
+            $("#c_dtl").val(text);
+        }
+
+        $("#btn_temp_save").on("click", function () {
+            var formData = $("#interviewForm").serializeArray();
+            formData.push({ name: "save_tag", value: "F" });
+
+            $.ajax({
+                type: "POST",
+                url: "/api/saveForm",
+                data: $.param(formData),
+                success: function (response) {
+                    alert("임시저장되었습니다.");
+                    window.location.href = "/interview-create";
+                },
+                error: function (error) {
+                    alert('오류가 발생했습니다. 다시 시도해주세요.');
+                }
+            });
+        })
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 공통 헤드-->
+<th:block th:replace="~{fragments/head :: headFragment}"></th:block>
+<link rel="stylesheet" href="css/common.css" th:href="@{/css/common.css}">
+
+<style>
+    .styled-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+    .styled-table th,
+    .styled-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .styled-table th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+    }
+</style>
+</head>
+<th:block th:replace="~{fragments/nav :: navFragment}"></th:block>
+
+<body>
+    <div class="container container-top">
+        <div class="row mt-5">
+            <h3>직원면담일지 작성</h3>
+            <hr>
+        </div>
+        <form name="selectForm" id="selectForm" th:object="${interview}">
+            <div class="row mt-3">
+                <div class="col-sm-12">
+                    <div class="row">
+                        <div class="col-sm-2 text-center d-flex align-items-center">
+                            <b class="px-3 m-0"><i class="bi bi-calendar4-week"></i> 면담일</b>
+                        </div>
+                        <div class="col col-10 col-md-3 col-lg-3 col-xl-3">
+                            <input type="date" class="form-control form-control-sm text-center" th:field="*{reqDt}"
+                                id="req_dt" autocomplete='off' required />
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-sm-2 text-center d-flex align-items-center">
+                            <b class="px-3 m-0"><i class="bi bi-person"></i> 피 면담자</b>
+                        </div>
+                        <div class="col-sm-10">
+                            <select class="form-select form-select-sm" name="ans_emp_no" id="ans_emp_no"
+                                th:field="*{ansEmpNo}" required></select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col text-center">
+                            <table class="styled-table" id="employeeTable">
+                                <thead>
+                                    <tr>
+                                        <th>사번</th>
+                                        <th>소속부서</th>
+                                        <th>근무현장</th>
+                                        <th>이름</th>
+                                        <th>직급</th>
+                                        <!-- <th>입사일</th> -->
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-3"></div>
+            </div>
+            <!-- <input type="submit" hidden/> -->
+        </form>
+        <div class="row text-center my-3">
+            <div class="col">
+                <button type="button" class="btn btn-secondary" id="btn_submit"
+                    th:data-req-emp-no="${reqDTO.empNo}">선택</button>
+            </div>
+        </div>
+
+        <hr>
+        <div class="row">
+            <h3>임시저장목록</h3>
+        </div>
+        <div class="row">
+            <div class="col text-center">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>면담일</th>
+                            <th>사번</th>
+                            <th>소속부서</th>
+                            <th>근무현장</th>
+                            <th>이름</th>
+                            <th>직급</th>
+                            <th>작성</th>
+                            <th>삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="dto, i : ${tempSaveDto}">
+                            <td th:text="${#dates.format(dto.reqDt,'yyyy-MM-dd')}"></td>
+                            <td th:text="${dto.ansDeptNo}"></td>
+                            <td class="text-start" th:text="${dto.ansAddDept}"></td>
+                            <td class="text-start" th:text="${dto.ansSubDept}"></td>
+                            <td th:text="${dto.ansName}"></td>
+                            <td th:text="${dto.ansPos}"></td>
+                            <td><a class='btn btn-sm btn-dark' th:href="@{/interview-form(seq=${dto.seq})}"><i
+                                        class="bi bi-pen"></i></a></td>
+                            <td><button type='button' class='btn btn-sm btn-danger'
+                                    th:onclick=deleteForm([[${dto.seq}]])><i class="bi bi-trash"></i></button></td>
+
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <th:block th:replace="~{fragments/footer :: footerFragment}"></th:block>
+    <th:block th:replace="~{fragments/script :: scriptFragment}"></th:block>
+    <script>
+        var curr = new Date();
+        curr.setHours(curr.getHours() + 9);  // 한국 시간으로 맞추기 위해 9시간 더하기
+        var dateStr = curr.toISOString().substring(0, 10);
+
+        $('#req_dt').val(dateStr);
+
+        ufn_select2_getData('/api/empAuthList', '#ans_emp_no', '피 면담자', '', function () { });
+
+        var cnt = 0;
+        var seq = 0;
+
+        $("#ans_emp_no").on("change", function () {
+            var ans_emp_no = $(this).val();
+            if (ans_emp_no) {
+                $.ajax({
+                    url: '/interview-search',
+                    method: 'GET',
+                    data: { ans_emp_no: ans_emp_no },
+                    success: function (response) {
+                        cnt = response.cnt;
+                        seq = response.seq;
+                        var tableBody = $('#employeeTable tbody');
+                        var rows = '';
+                        response.employeeDTO.forEach(function (employee) {
+                            rows += '<tr>' +
+                                '<td>' + employee.dispEmpNo + '</td>' +
+                                '<td>' + employee.addDept + '</td>' +
+                                '<td>' + employee.subDept + '</td>' +
+                                '<td>' + employee.name + '</td>' +
+                                '<td>' + employee.position + '</td>' +
+                                // '<td>' + employee.entDt + '</td>' +
+                                '</tr>';
+                        });
+                        tableBody.html(rows);  // 기존 데이터 대신 새로운 데이터로 덮어씁니다.
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("오류 발생: " + error);
+                    }
+                });
+            }
+        });
+
+        $("#btn_submit").on("click", function (e) {
+
+            if ($("#req_dt").val() == "" || $("#req_dt").val() == null || $("#ans_emp_no").val() == "" || $("#ans_emp_no").val() == null) {
+                alert("피 면담자를 선택해 주세요!");
+
+            } else {
+                if (cnt > 0) {
+                    if (!confirm("*임시저장 목록에 피 면담자가 존재합니다. 삭제 후 계속 진행하시겠습니까?")) {
+                        return false;
+                    }
+                }
+
+                $.ajax({
+                    url: '/api/tempDelete',
+                    method: 'POST',
+                    data: {
+                        cnt: cnt,
+                        seq: seq
+                    },
+                    success: function (response) {
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("날짜 전송 중 오류 발생: " + error);
+                    }
+                });
+
+                var formData = $('#selectForm').serialize();
+                $.ajax({
+                    url: '/api/create',
+                    method: 'POST',
+                    data: formData,
+                    success: function (response) {
+                        window.location.href = "/interview-form?seq=" + response;
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("날짜 전송 중 오류 발생: " + error);
+                    }
+                });
+            }
+
+        });
+
+        // function deleteForm(seq) {
+        //     if (confirm("삭제하시겠습니까?")) {
+        //         location.href = '/api/tempDelete?seq=' + seq;
+        //         location.reload();
+        //     }
+        //     location.href = '/interview-create';
+        //     location.reload();
+        // }
+
+        function deleteForm(seq) {
+            if (confirm("삭제하시겠습니까?")) {
+                // XMLHttpRequest를 사용하는 방법
+                var xhr = new XMLHttpRequest();
+                xhr.open("GET", '/api/tempDelete?seq=' + seq, true);
+                xhr.onload = function () {
+                    if (xhr.status === 200) {
+                        alert('삭제되었습니다.');
+                        location.href = '/interview-create'; // 페이지를 새로 고침할 URL로 이동
+                    } else {
+                        alert('삭제 실패:');
+                    }
+                };
+                xhr.send();
+            }
+        }
+
+    </script>
+</body>
+
+</html>

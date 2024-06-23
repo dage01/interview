@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dage.interview.dao.LoginDAO">
+    <select id="login" resultType="com.dage.interview.dto.LoginDTO">
+        select
+            a.user_no,
+            c.emp_no,
+            a.user_id,
+            a.password,
+            sf_proj_name(c.dept_code) add_dept,
+            c.dept_code as add_dept_code,
+            sf_proj_name(c.sub_dept_code) sub_dept,
+            c.sub_dept_code as sub_dept_code,
+            c.name,
+            c.position_code,
+            sf_position_name(c.position_code) as position
+        from
+            tcc_employe a
+        left join
+            thr_pm_base c
+        on
+            a.empno = c.emp_no
+        where
+            a.empno = c.emp_no
+            and c.retired_dt is null
+            and c.ent_comp_dt is not null
+            and c.position_code is not null
+            and (c.duty_code in (03, 04, 09, 14 ,37)
+                or c.position_code in (select position_code from thr_position_code where position_group = '01'))
+            and a.user_id = #{user_id} and a.password = #{user_password}
+    </select>
+    <select id="autoLogin" resultType="com.dage.interview.dto.LoginDTO">
+        select
+            a.user_no,
+            c.emp_no,
+            a.user_id,
+            a.password,
+            sf_proj_name(c.dept_code) add_dept,
+            c.dept_code as add_dept_code,
+            sf_proj_name(c.sub_dept_code) sub_dept,
+            c.sub_dept_code as sub_dept_code,
+            c.name,
+            c.position_code,
+            sf_position_name(c.position_code) as position
+        from
+            tcc_employe a
+        left join
+            thr_pm_base c
+        on
+            a.empno = c.emp_no
+        where
+            a.empno = c.emp_no
+            and c.retired_dt is null
+            and c.ent_comp_dt is not null
+            and c.position_code is not null
+            and (c.duty_code in (03, 04, 09, 14 ,37)
+                    or c.position_code in (select position_code from thr_position_code where position_group = '01'))
+            and a.user_no = #{user_no}
+    </select>
+
+</mapper>

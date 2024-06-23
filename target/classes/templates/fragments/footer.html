@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="footerFragment">
+      <footer>
+            <div class="container">
+                  <div class="row my-3">
+                        <hr>
+                        <div class="col text-center" style="font-weight: bold;">
+                              <div th if="${session.loginDto != null}">
+                                    <span class="mx-2" th:text="${session.loginDto.subDept}"></span> |
+                                    <span class="mx-2" th:text="${session.loginDto.position}"></span> |
+                                    <span class="mx-2" th:text="${session.loginDto.name}"></span>
+                              </div>
+                        </div>
+                  </div>
+            </div>
+      </footer>
+</th:block>
+
+</html>

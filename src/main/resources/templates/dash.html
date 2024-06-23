@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 공통 헤드-->
+<th:block th:replace="~{fragments/head :: headFragment}"></th:block>
+<link rel="stylesheet" href="css/common.css" th:href="@{/css/common.css}">
+
+<style>
+    footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: 60px;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+</style>
+
+</head>
+<th:block th:replace="~{fragments/nav :: navFragment}"></th:block>
+
+<body>
+    <main class="container container-top">
+        <div class="row mt-5">
+            <div class="col-sm-12">
+                <h3>Dashboard</h3>
+                <hr>
+                <div class="row my-1">
+                    <div class="col-sm-auto ms-auto">
+                        <button type="btn" class="btn btn-danger" id="btn_search"><i class="bi bi-search"></i>
+                            조회</button>
+                    </div>
+                </div>
+                <div class="row my-1">
+                    <div class="col text-center mx-5">
+                        <canvas id="activityChart1"></canvas>
+                    </div>
+                    <div class="col text-center mx-5">
+                        <canvas id="activityChart2"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    <th:block th:replace="~{fragments/footer :: footerFragment}"></th:block>
+    <th:block th:replace="~{fragments/script :: scriptFragment}"></th:block>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript">
+        // 데이터와 라벨 설정
+        const labels = ['매우 좋음', '좋음', '보통', '나쁨', '매우 나쁨'];
+        const data = {
+            labels: labels,
+            datasets: [{
+                label: '1. 직무만족도', // 라벨 설정
+                data: [65, 59, 80, 81, 56],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.2)',
+                    'rgba(255, 159, 64, 0.2)',
+                    'rgba(255, 205, 86, 0.2)',
+                    'rgba(75, 192, 192, 0.2)',
+                    'rgba(54, 162, 235, 0.2)'
+                ],
+                borderColor: [
+                    'rgb(255, 99, 132)',
+                    'rgb(255, 159, 64)',
+                    'rgb(255, 205, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(54, 162, 235)'
+                ],
+                borderWidth: 1
+            }]
+        };
+        // 차트를 렌더링할 캔버스 요소 선택
+        const ctx = document.getElementById('activityChart1').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: data,
+            options: {
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+
+        const ctx2 = document.getElementById('activityChart2').getContext('2d');
+        const chart2 = new Chart(ctx2, {
+            type: 'bar',
+            data: data,
+            options: {
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false,
+                    },
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+
+        // const labels = ['매우 좋음', '좋음', '보통', '나쁨', '매우 나쁨'];
+        // const data = {
+        //     labels: labels,
+        //     datasets: [{
+        //         label: 'Dataset 1', // 라벨 설정
+        //         data: [65, 59, 80, 81, 56],
+        //         backgroundColor: [
+        //             'rgba(255, 99, 132, 0.2)',
+        //             'rgba(255, 159, 64, 0.2)',
+        //             'rgba(255, 205, 86, 0.2)',
+        //             'rgba(75, 192, 192, 0.2)',
+        //             'rgba(54, 162, 235, 0.2)',
+        //             'rgba(153, 102, 255, 0.2)',
+        //             'rgba(201, 203, 207, 0.2)'
+        //         ],
+        //         borderColor: [
+        //             'rgb(255, 99, 132)',
+        //             'rgb(255, 159, 64)',
+        //             'rgb(255, 205, 86)',
+        //             'rgb(75, 192, 192)',
+        //             'rgb(54, 162, 235)',
+        //             'rgb(153, 102, 255)',
+        //             'rgb(201, 203, 207)'
+        //         ],
+        //         borderWidth: 1
+        //     }]
+        // };
+
+        // // 차트를 렌더링할 캔버스 요소 선택
+        // const ctx = document.getElementById('activityChart1').getContext('2d');
+        // const chart = new Chart(ctx, {
+        //     type: 'bar',
+        //     data: data,
+        //     options: {
+        //         indexAxis: 'y',
+        //         plugins: {
+        //             legend: {
+        //                 display: false // 범례 숨기기
+        //             },
+        //         },
+        //         scales: {
+        //             y: {
+        //                 beginAtZero: true
+        //             }
+        //         }
+        //     }
+        // });
+
+
+    </script>
+</body>
+
+</html>

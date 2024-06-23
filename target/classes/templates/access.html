@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<!-- 공통 헤드-->
+<th:block th:replace="~{fragments/head :: headFragment}"></th:block>
+<link rel="stylesheet" href="css/common.css" th:href="@{/css/common.css}">
+
+<style>
+    footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        height: 60px;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    /* 체크박스 크기와 클릭 영역 조정 */
+    .large-checkbox {
+        width: 20px;
+        /* 원하는 크기로 조정 */
+        height: 20px;
+        /* 원하는 크기로 조정 */
+    }
+
+    .large-checkbox-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+    }
+
+    /* 체크박스 클릭 영역 확장 */
+    .clickable-td {
+        cursor: pointer;
+        padding: 10px;
+    }
+</style>
+
+</head>
+<th:block th:replace="~{fragments/nav :: navFragment}"></th:block>
+
+<body>
+    <main class="container container-top">
+        <section class="row mt-5">
+            <div class="col-sm-12">
+                <h3>권한설정</h3>
+                <hr>
+            </div>
+            <div class="row mb-3">
+                <div class="col-sm-auto text-center d-flex align-items-center">
+                    <b class="px-2 m-0"><i class="bi bi-person"></i> 대상자</b>
+                </div>
+                <div class="col-sm-7 px-0">
+                    <select id="user_no" class="form-select" name="user_no"></select>
+                </div>
+            </div>
+
+            <div class="row mb-1 justify-content-start">
+                <div class="col-sm-auto ms-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="perTag" id="perTag">
+                        <label class="form-check-label" for="perTag">관리자 여부</label>
+                    </div>
+                </div>
+            </div>
+            <form name="accForm" id="accForm">
+                <section class="row justify-content-center mb-3">
+                    <div class="col col-12 text-center" id="grid" style="width: 2000px; height: 550px;"></div>
+                </section>
+            </form>
+            <section class="row">
+                <div class="col-sm text-center">
+                    <button type="button" class="btn btn-dark" id="btn_save">저장</button>
+                </div>
+            </section>
+        </section>
+    </main>
+    <th:block th:replace="~{fragments/footer :: footerFragment}"></th:block>
+    <th:block th:replace="~{fragments/script :: scriptFragment}"></th:block>
+    <script>
+        $(document).ready(function () {
+            ufn_select2_getData('/api/accessList', '#user_no', '권한대상', '', function () { });
+            // ufn_select2_getData('/api/projCode', '#proj_code', '현장 추가', '', function () { });
+
+            let grid;
+
+            class CheckboxRenderer {
+                constructor(props) {
+                    const el = document.createElement('input');
+                    el.type = 'checkbox';
+                    el.checked = Boolean(props.value);
+                    el.disabled = false;
+                    this.el = el;
+
+                    el.addEventListener('change', () => {
+                        // 체크박스 상태가 변경될 때 그리드의 데이터를 업데이트합니다.
+                        props.grid.setValue(props.rowKey, props.columnName, el.checked);
+                    });
+
+                    // 체크박스 엘리먼트를 그리드 셀에 연결합니다.
+                    this.element = el;
+                }
+
+                getElement() {
+                    return this.el;
+                }
+
+                render(props) {
+                    // 데이터가 변경될 때마다 체크박스 상태를 업데이트합니다.
+                    this.el.checked = Boolean(props.value);
+                }
+            }
+
+
+            function initializeGrid() {
+                grid = new tui.Grid({
+                    el: document.getElementById('grid'),
+                    data: [],
+                    bodyHeight: 'fitToParent',
+                    rowHeight: 30,
+                    rowHeaders: [
+                        { type: 'rowNum', width: 30, align: 'center', valign: 'middle' },
+                        {
+                            type: 'checkbox',
+                            header:
+                                `<label for="all-checkbox" class="checkbox">
+                <input type="checkbox" id="all-checkbox" class="hidden-input" name="_checked" />
+                <span class="custom-input"></span>
+                </label>` ,
+                            renderer: {
+                                type: CheckboxRenderer
+                            }
+                        }
+
+                    ],
+                    hideLoadingBar: false,
+                    pageOptions: {
+                        useClient: true,
+                        type: 'scroll',
+                        perPage: -1
+                    },
+                    columns: [
+                        { header: '본부', name: 'head', width: 130, align: 'center', sortable: true },
+                        { header: '파트', name: 'dept', width: 130, align: 'center', sortable: true },
+                        { header: '부서/현장 코드', name: 'projCode', width: 150, align: 'center', sortable: true },
+                        { header: '부서/현장', name: 'projName', width: 700, align: 'start', sortable: true },
+                        {
+                            header: '권한',
+                            name: 'deptStatus',
+                            width: 100,
+                            align: 'center',
+                            renderer: {
+                                type: CheckboxRenderer
+                            }
+                        }
+                    ],
+                    columnOptions: {
+                        resizable: true
+                    }
+                });
+            }
+
+            initializeGrid();
+
+            // select 요소에서 포커스가 벗어났을 때 이벤트 트리거
+            $("#user_no").on("change", function () {
+                searchData();
+            });
+
+            function searchData() {
+                var user_no = $("#user_no").val();
+
+                $.ajax({
+                    url: '/access-search',
+                    method: 'GET',
+                    data: { user_no: user_no },
+                    success: function (response) {
+                        var perTagValue = response.perTag;
+                        if (perTagValue) {
+                            $('#perTag').prop('checked', true);
+                        } else {
+                            $('#perTag').prop('checked', false);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("오류 발생: " + error);
+                    }
+                });
+
+                // 사용자 번호를 서버로 전송하여 데이터 조회
+                $.ajax({
+                    url: '/api/projCode',
+                    method: 'GET',
+                    data: { user_no: user_no },
+                    success: function (data) {
+                        if (Array.isArray(data) && data.length > 0) {
+                            grid.resetData(data); // 기존 그리드에 새 데이터 설정
+                        } else {
+                            console.error("유효하지 않은 데이터입니다:", data);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("데이터 조회 중 오류 발생:", error);
+                    }
+                });
+            }
+
+            $("#btn_save").on("click", function () {
+                var user_no = $("#user_no").val();
+                var per_tag = $('#perTag').prop('checked') ? 'T' : 'F'; // per_tag 값 설정
+
+                var data = grid.getData();
+
+                // 각 항목에 per_tag 필드 추가
+                data.forEach(item => {
+                    item.user_no = user_no;
+                    item.per_tag = per_tag; // 데이터 객체에 per_tag 필드 추가
+                });
+
+                console.log(data);
+            });
+        });
+    </script>
+</body>
+
+</html>

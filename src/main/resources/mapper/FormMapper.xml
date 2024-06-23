@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.dage.interview.dao.FormDAO">
+    <!--직원 목록-->
+    <select id="employeeList" resultType="com.dage.interview.dto.EmployeeDTO">
+        SELECT
+            a.emp_no as id,
+            a.name ||' '||position_name||' ('||b2.proj_name||')' as text,
+            a.disp_emp_no,
+            b1.proj_code as add_dept_code,
+            b1.proj_name as add_dept,
+            b2.proj_code as sub_dept_code,
+            b2.proj_name as sub_dept,
+            a.name,
+            c.position_code as pos_code,
+            c.position_name as position,
+            TO_CHAR(a.ent_comp_dt, 'YYYY-MM-DD') as ent_dt
+        FROM thr_pm_base a
+            , tcc_proj_code b1
+            , tcc_proj_code b2
+            , thr_position_code c
+        WHERE a.dept_code = b1.proj_code
+            AND a.sub_dept_code = b2.proj_code
+            AND a.position_code = c.position_code
+            AND a.retired_dt is null
+            AND a.ent_comp_dt is not null
+            AND c.position_name is not null
+            AND a.emp_cls_code IN ('001', '002', '008')
+            AND a.emp_no != #{req_emp_no}
+        <if test="ans_emp_no != null">
+            AND a.emp_no = #{ans_emp_no}
+        </if>
+        ORDER BY a.name
+    </select>
+
+    <!--면담일지 등록-->
+    <insert id="interviewCreate" parameterType="com.dage.interview.dto.InterviewDTO"
+            useGeneratedKeys="true" keyColumn="SEQ" keyProperty="seq">
+        INSERT INTO THR_INTRV_LOG (
+            SEQ,
+            REQ_EMP_NO,
+            REQ_DT,
+            REQ_ADD_DEPT_CODE,
+            REQ_ADD_DEPT,
+            REQ_SUB_DEPT_CODE,
+            REQ_SUB_DEPT,
+            REQ_NAME,
+            REQ_POS_CODE,
+            REQ_POS,
+            ANS_EMP_NO,
+            ANS_DISP_EMP_NO,
+            ANS_ADD_DEPT_CODE,
+            ANS_ADD_DEPT,
+            ANS_SUB_DEPT_CODE,
+            ANS_SUB_DEPT,
+            ANS_NAME,
+            ANS_POS_CODE,
+            ANS_POS,
+            REG_DT
+        ) VALUES(
+            NVL((select max(seq)+1 from THR_INTRV_LOG), 1),
+            #{reqEmpNo},
+            #{reqDt},
+            #{reqAddDeptCode},
+            #{reqAddDept},
+            #{reqSubDeptCode},
+            #{reqSubDept},
+            #{reqName},
+            #{reqPosCode},
+            #{reqPos},
+            #{ansEmpNo},
+            #{ansDeptNo},
+            #{ansAddDeptCode},
+            #{ansAddDept},
+            #{ansSubDeptCode},
+            #{ansSubDept},
+            #{ansName},
+            #{ansPosCode},
+            #{ansPos},
+            SYSDATE
+        )
+    </insert>
+
+    <!--면담 내용 등록-->
+    <insert id="saveAnswer">
+        MERGE INTO THR_INTRV_LOG_DET a
+        USING (
+        SELECT
+        #{seq} AS seq,
+        #{questNo} AS que_no,
+        #{questSubNo} AS que_sub_no,
+        #{answerNo} AS ans_no,
+        #{answerDtl} AS ans_dtl
+        FROM dual
+        ) b
+        ON (
+        a.SEQ = b.seq AND
+        a.QUE_NO = b.que_no AND
+        a.QUE_SUB_NO = b.que_sub_no
+        )
+        WHEN MATCHED THEN
+        UPDATE SET
+        a.ANS_NO = b.ans_no,
+        a.ANS_DTL = b.ans_dtl
+        WHEN NOT MATCHED THEN
+        INSERT (SEQ, QUE_NO, QUE_SUB_NO, ANS_NO, ANS_DTL)
+        VALUES (b.seq, b.que_no, b.que_sub_no, b.ans_no, b.ans_dtl)
+    </insert>
+
+    <!--임시저장여부-->
+    <update id="saveTag">
+        UPDATE thr_intrv_log
+        SET save_tag = #{save_tag}
+        WHERE seq = #{seq}
+    </update>
+
+    <!--면담내역목록-->
+    <select id="interViewList" resultType="com.dage.interview.dto.InterviewDTO">
+        select
+            a.seq,
+            a.req_dt as req_dt,
+            a.req_emp_no,
+            max(a.req_add_dept_code) as req_add_dept_code,
+            max(a.req_add_dept) as req_add_dept,
+            max(a.req_sub_dept_code) as req_sub_dept_code,
+            max(a.req_sub_dept) as req_sub_dept,
+            max(a.req_name) as req_name,
+            max(a.req_pos_code) as req_pos_code,
+            max(a.req_pos) as req_pos,
+            a.ans_emp_no,
+            max(c2.ans_dept_no) as ans_dept_no,
+            max(c2.ans_ent_dt) as ans_ent_dt,
+            max(a.ans_add_dept_code) as ans_add_dept_code,
+            max(a.ans_add_dept) as ans_add_dept,
+            max(a.ans_sub_dept_code) as ans_sub_dept_code,
+            max(a.ans_sub_dept) as ans_sub_dept,
+            max(a.ans_name) as ans_name,
+            max(a.ans_pos_code) as ans_pos_code,
+            max(a.ans_pos) as ans_pos,
+            max(CASE WHEN que_no = 1 then ans_no end) as q1,
+            max(CASE WHEN que_no = 1 then ans_dtl end) as q1_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=1 then 1 end) as q2_1,
+            max(CASE WHEN que_no = 2 and ans_no=1 then ans_dtl end) as q2_1_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=2 then 1 end) as q2_2,
+            max(CASE WHEN que_no = 2 and ans_no=2 then ans_dtl end) as q2_2_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=3 then 1 end) as q2_3,
+            max(CASE WHEN que_no = 2 and ans_no=3 then ans_dtl end) as q2_3_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=4 then 1 end) as q2_4,
+            max(CASE WHEN que_no = 2 and ans_no=4 then ans_dtl end) as q2_4_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=5 then 1 end) as q2_5,
+            max(CASE WHEN que_no = 2 and ans_no=5 then ans_dtl end) as q2_5_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=6 then 1 end) as q2_6,
+            max(CASE WHEN que_no = 2 and ans_no=6 then ans_dtl end) as q2_6_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=7 then 1 end) as q2_7,
+            max(CASE WHEN que_no = 2 and ans_no=7 then ans_dtl end) as q2_7_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=8 then 1 end) as q2_8,
+            max(CASE WHEN que_no = 2 and ans_no=8 then ans_dtl end) as q2_8_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=9 then 1 end) as q2_9,
+            max(CASE WHEN que_no = 2 and ans_no=9 then ans_dtl end) as q2_9_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=10 then 1 end) as q2_10,
+            max(CASE WHEN que_no = 2 and ans_no=10 then ans_dtl end) as q2_10_Dtl,
+            max(CASE WHEN que_no = 3 then ans_dtl end) as q3_Dtl,
+            max(CASE WHEN que_no = 4 then ans_dtl end) as q4_Dtl,
+            max(TO_CHAR(a.reg_dt, 'YYYY-MM-DD')) as reg_dt,
+            max(a.save_tag) as save_tag
+        from
+            thr_intrv_log a,
+            thr_intrv_log_det b,
+            (select
+                emp_no as req_emp_no,
+                sf_proj_name(dept_code) req_add_dept,
+                dept_code as req_add_dept_code,
+                sf_proj_name(sub_dept_code) req_sub_dept,
+                sub_dept_code as req_sub_dept_code,
+                name as req_name,
+                position_code as req_pos_code,
+                sf_position_name(position_code) req_pos
+            from thr_pm_base) c1,
+            (select
+                emp_no as ans_emp_no,
+                disp_emp_no as ans_dept_no,
+                TO_CHAR(ent_comp_dt, 'YYYY-MM-DD') as ans_ent_dt,
+                sf_proj_name(dept_code) ans_add_dept,
+                dept_code as ans_add_dept_code,
+                sf_proj_name(sub_dept_code) ans_sub_dept,
+                sub_dept_code as ans_sub_dept_code,
+                name as ans_name,
+                position_code as ans_pos_code,
+                sf_position_name(position_code) ans_pos
+            from thr_pm_base) c2
+        where a.seq = b.seq(+)
+            and a.req_emp_no = c1.req_emp_no
+            and a.ans_emp_no = c2.ans_emp_no
+            and TO_CHAR(a.req_dt, 'YYYY') = decode(#{req_dt, jdbcType=VARCHAR},'',TO_CHAR(a.req_dt, 'YYYY'),#{req_dt, jdbcType=VARCHAR})
+            and a.req_name like '%'||decode(#{req_name, jdbcType=VARCHAR},'',a.req_name,#{req_name , jdbcType=VARCHAR})||'%'
+            and a.save_tag = 'T'
+            and a.req_emp_no = #{req_emp_no}
+        group by
+            a.seq,
+            req_dt,
+            a.req_emp_no,
+            a.ans_emp_no
+        order by req_dt desc, seq desc
+<!--        select-->
+<!--            a.seq,-->
+<!--            a.req_dt,-->
+<!--            a.req_emp_no,-->
+<!--            max(a.req_add_dept_code) as req_add_dept_code,-->
+<!--            max(a.req_add_dept) as req_add_dept,-->
+<!--            max(a.req_sub_dept_code) as req_sub_dept_code,-->
+<!--            max(a.req_sub_dept) as req_sub_dept,-->
+<!--            max(a.req_name) as req_name,-->
+<!--            max(a.req_pos_code) as req_pos_code,-->
+<!--            max(a.req_pos) as req_pos,-->
+<!--            a.ans_emp_no,-->
+<!--            max(c2.ans_dept_no) as ans_dept_no,-->
+<!--            max(c2.ans_ent_dt) as ans_ent_dt,-->
+<!--            max(a.ans_add_dept_code) as ans_add_dept_code,-->
+<!--            max(a.ans_add_dept) as ans_add_dept,-->
+<!--            max(a.ans_sub_dept_code) as ans_sub_dept_code,-->
+<!--            max(a.ans_sub_dept) as ans_sub_dept,-->
+<!--            max(a.ans_name) as ans_name,-->
+<!--            max(a.ans_pos_code) as ans_pos_code,-->
+<!--            max(a.ans_pos) as ans_pos,-->
+<!--            max(CASE WHEN que_no = 1 then ans_no end) as q1,-->
+<!--            max(CASE WHEN que_no = 1 then ans_dtl end) as q1_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=1 then 1 end) as q2_1,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=1 then ans_dtl end) as q2_1_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=2 then 1 end) as q2_2,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=2 then ans_dtl end) as q2_2_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=3 then 1 end) as q2_3,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=3 then ans_dtl end) as q2_3_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=4 then 1 end) as q2_4,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=4 then ans_dtl end) as q2_4_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=5 then 1 end) as q2_5,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=5 then ans_dtl end) as q2_5_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=6 then 1 end) as q2_6,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=6 then ans_dtl end) as q2_6_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=7 then 1 end) as q2_7,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=7 then ans_dtl end) as q2_7_Dtl,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=8 then 1 end) as q2_8,-->
+<!--            max(CASE WHEN que_no = 2 and ans_no=8 then ans_dtl end) as q2_8_Dtl,-->
+<!--            max(CASE WHEN que_no = 3 then ans_dtl end) as q3_Dtl,-->
+<!--            max(TO_CHAR(a.reg_dt, 'YYYY-MM-DD')) as reg_dt-->
+<!--        from-->
+<!--            thr_intrv_log a,-->
+<!--            thr_intrv_log_det b,-->
+<!--            (select-->
+<!--            emp_no as req_emp_no,-->
+<!--            sf_proj_name(dept_code) req_add_dept,-->
+<!--            dept_code as req_add_dept_code,-->
+<!--            sf_proj_name(sub_dept_code) req_sub_dept,-->
+<!--            sub_dept_code as req_sub_dept_code,-->
+<!--            name as req_name,-->
+<!--            position_code as req_pos_code,-->
+<!--            sf_position_name(position_code) req_pos-->
+<!--            from thr_pm_base) c1,-->
+<!--            (select-->
+<!--            emp_no as ans_emp_no,-->
+<!--            disp_emp_no as ans_dept_no,-->
+<!--            TO_CHAR(ent_comp_dt, 'YYYY-MM-DD') as ans_ent_dt,-->
+<!--            sf_proj_name(dept_code) ans_add_dept,-->
+<!--            dept_code as ans_add_dept_code,-->
+<!--            sf_proj_name(sub_dept_code) ans_sub_dept,-->
+<!--            sub_dept_code as ans_sub_dept_code,-->
+<!--            name as ans_name,-->
+<!--            position_code as ans_pos_code,-->
+<!--            sf_position_name(position_code) ans_pos-->
+<!--            from thr_pm_base) c2-->
+<!--        where a.seq = b.seq-->
+<!--            and a.req_emp_no = c1.req_emp_no-->
+<!--            and a.ans_emp_no = c2.ans_emp_no-->
+<!--            and TO_CHAR(a.req_dt, 'YYYY') = decode(#{req_dt, jdbcType=VARCHAR},'',TO_CHAR(a.req_dt, 'YYYY'),#{req_dt, jdbcType=VARCHAR})-->
+<!--            and a.req_name like '%'||decode(#{req_name, jdbcType=VARCHAR},'',a.req_name,#{req_name , jdbcType=VARCHAR})||'%'-->
+<!--            and exists(-->
+<!--                select-->
+<!--                'Y'-->
+<!--                from thr_pm_base a1-->
+<!--                , thr_position_code b1-->
+<!--                , tcc_proj_code d1-->
+<!--                , (-->
+<!--                    select  e.emp_no, e.sub_dept_code as proj_code-->
+<!--                    from thr_pm_base e-->
+<!--                    where e.emp_no = #{req_emp_no}-->
+<!--                    union all-->
+<!--                    select-->
+<!--                    a.emp_no, b.proj_code-->
+<!--                    from-->
+<!--                    (-->
+<!--                    select z.*-->
+<!--                    from-->
+<!--                    (-->
+<!--                    select-->
+<!--                    row_number()over(partition by emp_no order by seq desc) as rnum-->
+<!--                    , x.*-->
+<!--                    from thr_annou_detail_mng x-->
+<!--                    where nvl(x.CONFIRM_TG,'F') = 'T'-->
+<!--                    ) z where rnum = 1-->
+<!--                    ) a-->
+<!--                    , thr_annou_add_dept b-->
+<!--                    where a.docu_no = b.docu_no-->
+<!--                    and a.seq = b.seq-->
+<!--                    and a.emp_no = #{req_emp_no}-->
+<!--                ) c-->
+<!--                where a1.position_code = b1.position_code-->
+<!--                and a1.sub_dept_code = d1.proj_code-->
+<!--                and (a1.sub_dept_code = c.proj_code or a1.dept_code = c.proj_code or d1.sati_head_code = c.proj_code or d1.sati_dept_code = c.proj_code)-->
+<!--                and b1.seq >= (select x1.seq from  thr_pm_base x, thr_position_code x1 where x.position_code = x1.position_code and x.emp_no = #{req_emp_no})-->
+<!--                and a1.emp_no = a.req_emp_no-->
+<!--                and a.save_tag = 'T'-->
+<!--            )-->
+<!--        group by-->
+<!--        a.seq,-->
+<!--        req_dt,-->
+<!--        a.req_emp_no,-->
+<!--        a.ans_emp_no-->
+<!--        order by a.req_dt desc-->
+    </select>
+
+    <!--임시저장카운트-->
+    <select id="selectTempSaveCnt" resultType="java.lang.Integer">
+        select
+            count(*)cnt
+        from thr_intrv_log
+        where req_emp_no = #{req_emp_no}
+            and ans_emp_no = #{ans_emp_no}
+            and NVL(save_tag,'F') = 'F'
+    </select>
+
+    <!--임시저장글번호-->
+    <select id="selectTempSeq" resultType="java.lang.String">
+        select
+            seq
+        from thr_intrv_log
+        where req_emp_no = #{req_emp_no}
+            and ans_emp_no = #{ans_emp_no}
+            and NVL(save_tag,'F') = 'F'
+    </select>
+
+    <!--삭제 M-->
+    <delete id="deleteLog">
+        delete
+        from thr_intrv_log
+        where seq = #{seq}
+    </delete>
+
+    <!--삭제 DET-->
+    <delete id="deleteLogDet">
+        delete
+        from thr_intrv_log_det
+        where seq = #{seq}
+    </delete>
+
+    <!--임시저장목록-->
+    <select id="saveConfirm" resultType="com.dage.interview.dto.InterviewDTO">
+        select
+            SEQ
+            ,REQ_DT as req_dt
+            ,ANS_ADD_DEPT
+            ,ANS_SUB_DEPT
+            ,ANS_NAME
+            ,ANS_POS
+            ,REG_DT
+            ,ANS_DISP_EMP_NO as ans_dept_no
+        from
+            thr_intrv_log
+        where nvl(save_tag, 'F') = 'F'
+            and req_emp_no = #{req_emp_no}
+    </select>
+
+    <!--면담내용상세-->
+    <select id="interViewDetail" resultType="com.dage.interview.dto.InterviewDTO">
+        select
+            a.seq,
+            a.req_dt as req_dt,
+            a.req_emp_no,
+            max(a.req_add_dept_code) as req_add_dept_code,
+            max(a.req_add_dept) as req_add_dept,
+            max(a.req_sub_dept_code) as req_sub_dept_code,
+            max(a.req_sub_dept) as req_sub_dept,
+            max(a.req_name) as req_name,
+            max(a.req_pos_code) as req_pos_code,
+            max(a.req_pos) as req_pos,
+            a.ans_emp_no,
+            max(c2.ans_dept_no) as ans_dept_no,
+            max(c2.ans_ent_dt) as ans_ent_dt,
+            max(a.ans_add_dept_code) as ans_add_dept_code,
+            max(a.ans_add_dept) as ans_add_dept,
+            max(a.ans_sub_dept_code) as ans_sub_dept_code,
+            max(a.ans_sub_dept) as ans_sub_dept,
+            max(a.ans_name) as ans_name,
+            max(a.ans_pos_code) as ans_pos_code,
+            max(a.ans_pos) as ans_pos,
+            max(CASE WHEN que_no = 1 then ans_no end) as q1,
+            max(CASE WHEN que_no = 1 then ans_dtl end) as q1_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=1 then 1 end) as q2_1,
+            max(CASE WHEN que_no = 2 and ans_no=1 then ans_dtl end) as q2_1_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=2 then 1 end) as q2_2,
+            max(CASE WHEN que_no = 2 and ans_no=2 then ans_dtl end) as q2_2_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=3 then 1 end) as q2_3,
+            max(CASE WHEN que_no = 2 and ans_no=3 then ans_dtl end) as q2_3_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=4 then 1 end) as q2_4,
+            max(CASE WHEN que_no = 2 and ans_no=4 then ans_dtl end) as q2_4_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=5 then 1 end) as q2_5,
+            max(CASE WHEN que_no = 2 and ans_no=5 then ans_dtl end) as q2_5_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=6 then 1 end) as q2_6,
+            max(CASE WHEN que_no = 2 and ans_no=6 then ans_dtl end) as q2_6_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=7 then 1 end) as q2_7,
+            max(CASE WHEN que_no = 2 and ans_no=7 then ans_dtl end) as q2_7_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=8 then 1 end) as q2_8,
+            max(CASE WHEN que_no = 2 and ans_no=8 then ans_dtl end) as q2_8_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=9 then 1 end) as q2_9,
+            max(CASE WHEN que_no = 2 and ans_no=9 then ans_dtl end) as q2_9_Dtl,
+            max(CASE WHEN que_no = 2 and ans_no=10 then 1 end) as q2_10,
+            max(CASE WHEN que_no = 2 and ans_no=10 then ans_dtl end) as q2_10_Dtl,
+            max(CASE WHEN que_no = 3 then ans_dtl end) as q3_Dtl,
+            max(CASE WHEN que_no = 4 then ans_dtl end) as q4_Dtl,
+            max(TO_CHAR(a.reg_dt, 'YYYY-MM-DD')) as reg_dt,
+            max(a.save_tag) as save_tag
+        from
+            thr_intrv_log a,
+            thr_intrv_log_det b,
+            (select
+            emp_no as req_emp_no,
+            sf_proj_name(dept_code) req_add_dept,
+            dept_code as req_add_dept_code,
+            sf_proj_name(sub_dept_code) req_sub_dept,
+            sub_dept_code as req_sub_dept_code,
+            name as req_name,
+            position_code as req_pos_code,
+            sf_position_name(position_code) req_pos
+            from thr_pm_base) c1,
+            (select
+            emp_no as ans_emp_no,
+            disp_emp_no as ans_dept_no,
+            TO_CHAR(ent_comp_dt, 'YYYY-MM-DD') as ans_ent_dt,
+            sf_proj_name(dept_code) ans_add_dept,
+            dept_code as ans_add_dept_code,
+            sf_proj_name(sub_dept_code) ans_sub_dept,
+            sub_dept_code as ans_sub_dept_code,
+            name as ans_name,
+            position_code as ans_pos_code,
+            sf_position_name(position_code) ans_pos
+            from thr_pm_base) c2
+        where a.seq = b.seq(+)
+            and a.req_emp_no = c1.req_emp_no
+            and a.ans_emp_no = c2.ans_emp_no
+            and a.seq = #{seq}
+        group by
+            a.seq,
+            req_dt,
+            a.req_emp_no,
+            a.ans_emp_no
+    </select>
+</mapper>
