@@ -115,7 +115,6 @@
                                         class="bi bi-pen"></i></a></td>
                             <td><button type='button' class='btn btn-sm btn-danger'
                                     th:onclick=deleteForm([[${dto.seq}]])><i class="bi bi-trash"></i></button></td>
-
                         </tr>
                     </tbody>
                 </table>
@@ -209,15 +208,6 @@
             }
 
         });
-
-        // function deleteForm(seq) {
-        //     if (confirm("삭제하시겠습니까?")) {
-        //         location.href = '/api/tempDelete?seq=' + seq;
-        //         location.reload();
-        //     }
-        //     location.href = '/interview-create';
-        //     location.reload();
-        // }
 
         function deleteForm(seq) {
             if (confirm("삭제하시겠습니까?")) {
